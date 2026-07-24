@@ -214,12 +214,6 @@ function renderTable(d) {
       });
     })(m);
 
-    var cb = tr.querySelector('.compare-check');
-    cb.addEventListener('click', function(e) {
-      e.stopPropagation();
-      toggleCompareModel(m.id);
-    });
-
     tbody.appendChild(tr);
   }
 }
@@ -266,9 +260,6 @@ function initSources(d) {
     grid.appendChild(card);
   }
 }
-
-// Compare feature
-var compareChart = null;
 
 function openModal(model, d) {
   var overlay = document.getElementById('modalOverlay');
@@ -327,7 +318,7 @@ function openModal(model, d) {
   }
   compareBtn.addEventListener('click', function(e) {
     e.stopPropagation();
-    toggleCompareModel(model.id);
+    toggleCompare(model.id, d);
     if (compareModels.indexOf(model.id) !== -1) {
       compareBtn.textContent = 'Remove from Comparison';
       compareBtn.classList.add('active');
