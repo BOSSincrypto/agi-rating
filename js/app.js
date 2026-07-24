@@ -7,6 +7,7 @@ var deps = null;
 var chartJsLoaded = false;
 var compareModels = [];
 var COMPARE_MAX = 4;
+var compareChart = null;
 
 function getDeps() {
   if (deps) return deps;
@@ -108,7 +109,15 @@ function initTabs(d) {
           setTimeout(function() { d.initCharts(); }, 100);
         }
       } else if (target === 'compare') {
-        renderCompareTab();
+        renderCompare(d);
+        if (chartJsLoaded && compareModels.length >= 2) {
+          setTimeout(function() {
+            var models = compareModels.map(function(id) {
+              return d.M.find(function(m) { return m.id === id; });
+            }).filter(Boolean);
+            if (models.length >= 2) renderCompareRadar(models);
+          }, 100);
+        }
       } else {
         d.destroyCharts();
       }
@@ -173,7 +182,7 @@ function renderTable(d) {
     }
 
     tr.innerHTML =
-      '<td class="compare-cell"><input type="checkbox" class="compare-check" data-model-id="' + m.id + '"' + (compareModels.indexOf(m.id) !== -1 ? ' checked' : '') + '></td>' +
+      '<td class="compare-checkbox-col"><input type="checkbox" class="table-checkbox" data-model-id="' + m.id + '"' + (compareModels.indexOf(m.id) !== -1 ? ' checked' : '') + '></td>' +
       '<td><div class="model-cell">' +
         '<div class="provider-badge" style="background:' + provider.color + '">' + provider.logo + '</div>' +
         '<div class="model-info">' +
@@ -191,8 +200,18 @@ function renderTable(d) {
       '<td><div class="tags">' + tags + '</div></td>';
 
     tr.style.cursor = 'pointer';
+    var cb = tr.querySelector('.table-checkbox');
     (function(model) {
-      tr.addEventListener('click', function() { openModal(model, d); });
+      cb.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggleCompare(model.id, d);
+      });
+    })(m);
+    (function(model) {
+      tr.addEventListener('click', function(e) {
+        if (e.target.tagName === 'INPUT') return;
+        openModal(model, d);
+      });
     })(m);
 
     var cb = tr.querySelector('.compare-check');
@@ -250,233 +269,6 @@ function initSources(d) {
 
 // Compare feature
 var compareChart = null;
-
-function toggleCompareModel(modelId) {
-  var idx = compareModels.indexOf(modelId);
-  if (idx !== -1) {
-    compareModels.splice(idx, 1);
-  } else {
-    if (compareModels.length >= COMPARE_MAX) {
-      compareModels.shift();
-    }
-    compareModels.push(modelId);
-  }
-  updateCompareBar();
-  renderCompareTab();
-  if (currentTab === 'table') renderTable(getDeps());
-}
-
-function clearCompareModels() {
-  compareModels = [];
-  updateCompareBar();
-  renderCompareTab();
-  if (currentTab === 'table') renderTable(getDeps());
-}
-
-function updateCompareBar() {
-  var bar = document.getElementById('compareBar');
-  if (compareModels.length === 0) {
-    bar.style.display = 'none';
-    return;
-  }
-  bar.style.display = '';
-
-  document.getElementById('compareCount').textContent = compareModels.length;
-  document.getElementById('compareMax').textContent = COMPARE_MAX;
-
-  var chipsEl = document.getElementById('compareBarChips');
-  chipsEl.innerHTML = '';
-  var d = getDeps();
-  for (var i = 0; i < compareModels.length; i++) {
-    var model = d.M.find(function(m) { return m.id === compareModels[i]; });
-    if (!model) continue;
-    var provider = d.P[model.provider];
-    var chip = document.createElement('span');
-    chip.className = 'compare-chip';
-    chip.innerHTML = '<span class="chip-badge" style="background:' + provider.color + '">' + provider.logo + '</span>' + model.name + '<button class="chip-remove" data-model-id="' + model.id + '">&times;</button>';
-    chipsEl.appendChild(chip);
-  }
-
-  var removeBtns = chipsEl.querySelectorAll('.chip-remove');
-  for (var j = 0; j < removeBtns.length; j++) {
-    removeBtns[j].addEventListener('click', function(e) {
-      e.stopPropagation();
-      toggleCompareModel(this.dataset.modelId);
-    });
-  }
-}
-
-function renderCompareTab() {
-  var d = getDeps();
-  var emptyEl = document.getElementById('compareEmpty');
-  var contentEl = document.getElementById('compareContent');
-
-  if (compareModels.length < 2) {
-    emptyEl.style.display = '';
-    contentEl.style.display = 'none';
-    return;
-  }
-  emptyEl.style.display = 'none';
-  contentEl.style.display = '';
-
-  var models = compareModels.map(function(id) {
-    return d.M.find(function(m) { return m.id === id; });
-  }).filter(Boolean);
-
-  var chipsEl = document.getElementById('compareChips');
-  chipsEl.innerHTML = '';
-  for (var i = 0; i < models.length; i++) {
-    var m = models[i];
-    var provider = d.P[m.provider];
-    var chip = document.createElement('span');
-    chip.className = 'compare-chip';
-    chip.innerHTML = '<span class="chip-badge" style="background:' + provider.color + '">' + provider.logo + '</span>' + m.name + '<button class="chip-remove" data-model-id="' + m.id + '">&times;</button>';
-    chipsEl.appendChild(chip);
-  }
-  var removeBtns = chipsEl.querySelectorAll('.chip-remove');
-  for (var j = 0; j < removeBtns.length; j++) {
-    removeBtns[j].addEventListener('click', function() {
-      toggleCompareModel(this.dataset.modelId);
-    });
-  }
-
-  var gridEl = document.getElementById('compareGrid');
-  gridEl.innerHTML = '';
-
-  var metrics = [
-    { label: 'Intelligence', get: function(m) { return m.scores.artificialAnalysis && m.scores.artificialAnalysis.intelligence; }, max: 65 },
-    { label: 'Composite', get: function(m) { return m.scores.llmStats && m.scores.llmStats.composite; }, max: 65 },
-    { label: 'Arena Elo', get: function(m) { return m.scores.chatbotArena && m.scores.chatbotArena.elo; }, max: 1600 },
-    { label: 'Reasoning', get: function(m) { return (m.scores.llmStats && m.scores.llmStats.reasoning) || (m.scores.vellum && m.scores.vellum.gpqa); }, max: 100 },
-    { label: 'Coding', get: function(m) { return (m.scores.llmStats && m.scores.llmStats.coding) || (m.scores.vellum && m.scores.vellum.swebench); }, max: 100 },
-    { label: 'Agent', get: function(m) { return m.scores.llmStats && m.scores.llmStats.agent; }, max: 50 },
-    { label: 'HLE', get: function(m) { return m.scores.vellum && m.scores.vellum.hle; }, max: 70 },
-    { label: 'GPQA', get: function(m) { return m.scores.vellum && m.scores.vellum.gpqa; }, max: 100 },
-    { label: 'SWE-Bench', get: function(m) { return m.scores.vellum && m.scores.vellum.swebench; }, max: 100 },
-    { label: 'Terminal-Bench', get: function(m) { return m.scores.vellum && m.scores.vellum.terminal; }, max: 100 },
-    { label: 'BrowseComp', get: function(m) { return m.scores.vellum && m.scores.vellum.browsecomp; }, max: 100 },
-    { label: 'OSWorld', get: function(m) { return m.scores.vellum && m.scores.vellum.osworld; }, max: 100 },
-    { label: 'AutoBench', get: function(m) { return m.scores.vellum && m.scores.vellum.autobench; }, max: 20 },
-    { label: 'Speed', get: function(m) { return (m.scores.artificialAnalysis && m.scores.artificialAnalysis.speed) || (m.scores.vellum && m.scores.vellum.speed); }, max: 2700, suffix: ' t/s' },
-    { label: 'Avg Price', get: function(m) { return m.pricing ? (m.pricing.input + m.pricing.output) / 2 : null; }, max: 60, suffix: '/1M', invert: true },
-    { label: 'Context Window', get: function(m) { return m.contextWindow; }, max: 10000000 },
-    { label: 'Max Output', get: function(m) { return m.maxOutput; }, max: 512000 },
-    { label: 'License', get: function(m) { return m.license === 'open' ? 'Open' : 'Proprietary'; }, isText: true },
-  ];
-
-  for (var mi = 0; mi < metrics.length; mi++) {
-    var metric = metrics[mi];
-    if (metric.isText) continue;
-    var vals = models.map(metric.get).filter(function(v) { return v !== null && v !== undefined; });
-    if (vals.length > 0) {
-      metric.bestVal = metric.invert ? Math.min.apply(null, vals) : Math.max.apply(null, vals);
-      metric.worstVal = metric.invert ? Math.max.apply(null, vals) : Math.min.apply(null, vals);
-    }
-  }
-
-  var html = '<table class="compare-table"><thead><tr><th class="compare-metric-col">Metric</th>';
-  for (var ci = 0; ci < models.length; ci++) {
-    var cm = models[ci];
-    var cp = d.P[cm.provider];
-    html += '<th><div class="compare-model-header"><span class="provider-badge" style="background:' + cp.color + '">' + cp.logo + '</span>' + cm.name + '</div></th>';
-  }
-  html += '</tr></thead><tbody>';
-
-  for (var ri = 0; ri < metrics.length; ri++) {
-    var rmetric = metrics[ri];
-    html += '<tr><td class="compare-metric-label">' + rmetric.label + '</td>';
-    for (var cj = 0; cj < models.length; cj++) {
-      var cellVal = rmetric.get(models[cj]);
-      var cellClass = 'compare-cell';
-      if (!rmetric.isText && cellVal !== null && cellVal !== undefined) {
-        if (cellVal === rmetric.bestVal) cellClass += ' compare-best';
-        else if (cellVal === rmetric.worstVal && models.length > 2) cellClass += ' compare-worst';
-      }
-      if (rmetric.isText) {
-        html += '<td class="' + cellClass + '">' + (cellVal || '—') + '</td>';
-      } else {
-        var formatted = cellVal != null ? (typeof cellVal === 'number' ? cellVal.toFixed(1) : cellVal) : '—';
-        if (rmetric.suffix) formatted += rmetric.suffix;
-        html += '<td class="' + cellClass + '">' + formatted + '</td>';
-      }
-    }
-    html += '</tr>';
-  }
-  html += '</tbody></table>';
-  gridEl.innerHTML = html;
-
-  renderCompareRadar(models, d);
-}
-
-function renderCompareRadar(models, d) {
-  if (compareChart) {
-    compareChart.destroy();
-    compareChart = null;
-  }
-
-  if (!window.Chart) return;
-
-  var labels = ['Intelligence', 'Reasoning', 'Coding', 'Agent', 'Speed', 'HLE', 'GPQA'];
-  var colors = ['#6366f1', '#ef4444', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899', '#14b8a6', '#06b6d4'];
-
-  var datasets = models.map(function(m, idx) {
-    var data = [
-      (m.scores.artificialAnalysis && m.scores.artificialAnalysis.intelligence) || 0,
-      (m.scores.llmStats && m.scores.llmStats.reasoning) || (m.scores.vellum && m.scores.vellum.gpqa) || 0,
-      (m.scores.llmStats && m.scores.llmStats.coding) || (m.scores.vellum && m.scores.vellum.swebench) || 0,
-      (m.scores.llmStats && m.scores.llmStats.agent) || 0,
-      Math.min(((m.scores.artificialAnalysis && m.scores.artificialAnalysis.speed) || 0) / 20, 65),
-      (m.scores.vellum && m.scores.vellum.hle) || 0,
-      (m.scores.vellum && m.scores.vellum.gpqa) || 0,
-    ];
-    var color = colors[idx % colors.length];
-    return {
-      label: m.name,
-      data: data,
-      borderColor: color,
-      backgroundColor: color + '22',
-      borderWidth: 2,
-      pointRadius: 4,
-      pointHoverRadius: 6,
-    };
-  });
-
-  compareChart = new Chart(document.getElementById('chartCompare'), {
-    type: 'radar',
-    data: { labels: labels, datasets: datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16 } },
-      },
-      scales: {
-        r: {
-          beginAtZero: true,
-          max: 100,
-          grid: { color: '#2d2d5a44' },
-          angleLines: { color: '#2d2d5a44' },
-          pointLabels: { font: { size: 11 } },
-        }
-      }
-    }
-  });
-}
-
-function initCompare(d) {
-  document.getElementById('compareGoBtn').addEventListener('click', function() {
-    var tabs = document.querySelectorAll('.tab');
-    for (var i = 0; i < tabs.length; i++) {
-      if (tabs[i].dataset.tab === 'compare') {
-        tabs[i].click();
-        break;
-      }
-    }
-  });
-  document.getElementById('compareClearBtn').addEventListener('click', function() {
-    clearCompareModels();
-  });
-}
 
 function openModal(model, d) {
   var overlay = document.getElementById('modalOverlay');
@@ -553,6 +345,234 @@ function openModal(model, d) {
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('active');
   document.body.style.overflow = '';
+}
+
+// === Compare Feature ===
+function toggleCompare(modelId, d) {
+  var idx = compareModels.indexOf(modelId);
+  if (idx !== -1) {
+    compareModels.splice(idx, 1);
+  } else {
+    if (compareModels.length >= COMPARE_MAX) {
+      compareModels.shift();
+    }
+    compareModels.push(modelId);
+  }
+  renderCompareBar(d);
+  renderCompare(d);
+}
+
+function renderCompareBar(d) {
+  var bar = document.getElementById('compareBar');
+  if (compareModels.length === 0) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = '';
+
+  document.getElementById('compareCount').textContent = compareModels.length;
+
+  var chipsEl = document.getElementById('compareBarModels');
+  chipsEl.innerHTML = '';
+  for (var i = 0; i < compareModels.length; i++) {
+    var model = d.M.find(function(m) { return m.id === compareModels[i]; });
+    if (!model) continue;
+    var provider = d.P[model.provider];
+    var chip = document.createElement('span');
+    chip.className = 'compare-bar-chip';
+    chip.innerHTML = '<span class="provider-badge" style="background:' + provider.color + ';width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;color:white;margin-right:0.3rem">' + provider.logo + '</span>' +
+      model.name +
+      '<button class="chip-remove" data-model-id="' + model.id + '">&times;</button>';
+    chipsEl.appendChild(chip);
+  }
+
+  var removeBtns = chipsEl.querySelectorAll('.chip-remove');
+  for (var j = 0; j < removeBtns.length; j++) {
+    removeBtns[j].addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleCompare(this.dataset.modelId, d);
+    });
+  }
+}
+
+function renderCompare(d) {
+  var contentEl = document.getElementById('compareContent');
+  var infoEl = document.getElementById('compareInfo');
+
+  if (compareModels.length < 2) {
+    contentEl.innerHTML = '<div class="compare-empty"><p>Select at least 2 models from the Rankings tab to compare them.</p></div>';
+    infoEl.textContent = compareModels.length === 0 ? 'Select models from Rankings tab' : '1 model selected — need at least 2';
+    return;
+  }
+
+  var models = compareModels.map(function(id) {
+    return d.M.find(function(m) { return m.id === id; });
+  }).filter(Boolean);
+
+  infoEl.textContent = models.length + ' models selected';
+
+  var metrics = [
+    { label: 'Intelligence', get: function(m) { return m.scores.artificialAnalysis && m.scores.artificialAnalysis.intelligence; }, max: 65 },
+    { label: 'Composite', get: function(m) { return m.scores.llmStats && m.scores.llmStats.composite; }, max: 65 },
+    { label: 'Arena Elo', get: function(m) { return m.scores.chatbotArena && m.scores.chatbotArena.elo; }, max: 1600 },
+    { label: 'Reasoning', get: function(m) { return (m.scores.llmStats && m.scores.llmStats.reasoning) || (m.scores.vellum && m.scores.vellum.gpqa); }, max: 100 },
+    { label: 'Coding', get: function(m) { return (m.scores.llmStats && m.scores.llmStats.coding) || (m.scores.vellum && m.scores.vellum.swebench); }, max: 100 },
+    { label: 'Agent', get: function(m) { return m.scores.llmStats && m.scores.llmStats.agent; }, max: 50 },
+    { label: 'HLE', get: function(m) { return m.scores.vellum && m.scores.vellum.hle; }, max: 100 },
+    { label: 'GPQA', get: function(m) { return m.scores.vellum && m.scores.vellum.gpqa; }, max: 100 },
+    { label: 'SWE-Bench', get: function(m) { return m.scores.vellum && m.scores.vellum.swebench; }, max: 100 },
+    { label: 'BrowseComp', get: function(m) { return m.scores.vellum && m.scores.vellum.browsecomp; }, max: 100 },
+    { label: 'Terminal', get: function(m) { return m.scores.vellum && m.scores.vellum.terminal; }, max: 100 },
+    { label: 'Speed', get: function(m) { return (m.scores.artificialAnalysis && m.scores.artificialAnalysis.speed) || (m.scores.vellum && m.scores.vellum.speed); }, suffix: ' t/s', max: 1000 },
+    { label: 'Avg Price', get: function(m) { return m.pricing ? (m.pricing.input + m.pricing.output) / 2 : null; }, suffix: '/1M', invert: true },
+    { label: 'Context', get: function(m) { return m.contextWindow; }, format: d.formatContext },
+    { label: 'Max Output', get: function(m) { return m.maxOutput; }, format: d.formatContext },
+    { label: 'License', get: function(m) { return m.license === 'open' ? 'Open Source' : 'Proprietary'; }, isText: true },
+  ];
+
+  // Find best values for highlighting
+  for (var mi = 0; mi < metrics.length; mi++) {
+    var metric = metrics[mi];
+    if (metric.isText) continue;
+    var vals = models.map(metric.get).filter(function(v) { return v != null; });
+    if (vals.length > 0) {
+      metric.bestVal = metric.invert ? Math.min.apply(null, vals) : Math.max.apply(null, vals);
+    }
+  }
+
+  // Build grid
+  var cols = models.length + 1;
+  var html = '<div class="compare-grid" style="grid-template-columns: 180px repeat(' + models.length + ', 1fr)">';
+
+  // Header row
+  html += '<div class="compare-header-cell" style="background:var(--bg-secondary)"></div>';
+  for (var ci = 0; ci < models.length; ci++) {
+    var cm = models[ci];
+    var cp = d.P[cm.provider];
+    html += '<div class="compare-header-cell"><span class="provider-badge" style="background:' + cp.color + '">' + cp.logo + '</span> ' + cm.name + '</div>';
+  }
+
+  // Metric rows
+  for (var ri = 0; ri < metrics.length; ri++) {
+    var rm = metrics[ri];
+    html += '<div class="compare-metric-label">' + rm.label + '</div>';
+    for (var cj = 0; cj < models.length; cj++) {
+      var val = rm.get(models[cj]);
+      var cellClass = 'compare-cell';
+      if (!rm.isText && val != null && val === rm.bestVal) {
+        cellClass += ' compare-best';
+      }
+      if (rm.isText) {
+        html += '<div class="' + cellClass + '">' + (val || '—') + '</div>';
+      } else if (val != null) {
+        var display = rm.format ? rm.format(val) : (typeof val === 'number' ? val.toFixed(1) : val);
+        if (rm.suffix) display += rm.suffix;
+        html += '<div class="' + cellClass + '">' + display + '</div>';
+      } else {
+        html += '<div class="' + cellClass + '" style="color:var(--text-muted)">—</div>';
+      }
+    }
+  }
+
+  // Highlights row
+  html += '<div class="compare-metric-label" style="font-weight:700">Highlights</div>';
+  for (var ch = 0; ch < models.length; ch++) {
+    var chModel = models[ch];
+    var hl = (chModel.highlights || []).join(', ') || '—';
+    html += '<div class="compare-cell" style="font-size:0.8rem;color:var(--text-secondary)">' + hl + '</div>';
+  }
+
+  html += '</div>';
+
+  // Radar chart
+  html += '<div class="compare-radar-wrap"><canvas id="compareRadarChart"></canvas></div>';
+
+  contentEl.innerHTML = html;
+
+  // Render radar chart
+  if (chartJsLoaded && typeof Chart !== 'undefined') {
+    renderCompareRadar(models);
+  } else if (!chartJsLoaded) {
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+    script.onload = function() {
+      chartJsLoaded = true;
+      setTimeout(function() { renderCompareRadar(models); }, 50);
+    };
+    document.head.appendChild(script);
+  }
+}
+
+function renderCompareRadar(models) {
+  if (compareChart) {
+    compareChart.destroy();
+    compareChart = null;
+  }
+
+  var canvas = document.getElementById('compareRadarChart');
+  if (!canvas) return;
+
+  var labels = ['Intelligence', 'Reasoning', 'Coding', 'Speed', 'HLE', 'GPQA', 'SWE-Bench'];
+  var colors = ['#6366f1', '#ef4444', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899', '#14b8a6', '#06b6d4'];
+
+  var datasets = models.map(function(m, idx) {
+    var data = [
+      ((m.scores.artificialAnalysis && m.scores.artificialAnalysis.intelligence) || 0) / 65 * 100,
+      ((m.scores.llmStats && m.scores.llmStats.reasoning) || (m.scores.vellum && m.scores.vellum.gpqa) || 0),
+      ((m.scores.llmStats && m.scores.llmStats.coding) || (m.scores.vellum && m.scores.vellum.swebench) || 0),
+      Math.min(((m.scores.artificialAnalysis && m.scores.artificialAnalysis.speed) || 0) / 10, 100),
+      (m.scores.vellum && m.scores.vellum.hle) || 0,
+      (m.scores.vellum && m.scores.vellum.gpqa) || 0,
+      (m.scores.vellum && m.scores.vellum.swebench) || 0,
+    ];
+    var color = colors[idx % colors.length];
+    return {
+      label: m.name,
+      data: data,
+      borderColor: color,
+      backgroundColor: color + '22',
+      borderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+    };
+  });
+
+  compareChart = new Chart(canvas, {
+    type: 'radar',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16 } } },
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 100,
+          grid: { color: document.documentElement.dataset.theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' },
+          angleLines: { color: document.documentElement.dataset.theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' },
+          pointLabels: { font: { size: 11 } },
+        }
+      }
+    }
+  });
+}
+
+function initCompare(d) {
+  document.getElementById('compareBtn').addEventListener('click', function() {
+    var tabs = document.querySelectorAll('.tab');
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].dataset.tab === 'compare') {
+        tabs[i].click();
+        break;
+      }
+    }
+  });
+  document.getElementById('compareClear').addEventListener('click', function() {
+    compareModels = [];
+    renderCompareBar(d);
+    renderCompare(d);
+    renderTable(d);
+  });
 }
 
 document.getElementById('modalClose').addEventListener('click', closeModal);
