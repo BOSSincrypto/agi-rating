@@ -4,7 +4,6 @@
 function formatPrice(price) {
   if (price === null || price === undefined) return '—';
   if (price < 0.01) return '<$0.01';
-  if (price < 1) return `$${price.toFixed(2)}`;
   return `$${price.toFixed(2)}`;
 }
 
@@ -64,8 +63,10 @@ function sortModels(models, sortBy, sortDir) {
         return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
 
       case 'provider':
-        aVal = PROVIDERS[a.provider].name.toLowerCase();
-        bVal = PROVIDERS[b.provider].name.toLowerCase();
+        var aProv = PROVIDERS[a.provider] || { name: '' };
+        var bProv = PROVIDERS[b.provider] || { name: '' };
+        aVal = aProv.name.toLowerCase();
+        bVal = bProv.name.toLowerCase();
         return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
 
       case 'intelligence':
@@ -125,7 +126,7 @@ function filterModels(models, filters) {
     if (filters.category && filters.category !== 'all' && m.categories.indexOf(filters.category) === -1) return false;
     if (filters.search) {
       var q = filters.search.toLowerCase();
-      if (m.name.toLowerCase().indexOf(q) === -1 && PROVIDERS[m.provider].name.toLowerCase().indexOf(q) === -1) return false;
+      if (m.name.toLowerCase().indexOf(q) === -1 && ((PROVIDERS[m.provider] || {}).name || '').toLowerCase().indexOf(q) === -1) return false;
     }
     return true;
   });

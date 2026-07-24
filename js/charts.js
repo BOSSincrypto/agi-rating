@@ -3,6 +3,11 @@
 let charts = {};
 
 function initCharts() {
+  if (!window.Chart) {
+    console.warn('Chart.js not loaded');
+    return;
+  }
+
   const { MODELS, PROVIDERS } = window.AGIRating;
   const { formatPrice } = window.AGIRatingUtils;
 

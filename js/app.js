@@ -167,7 +167,7 @@ function renderTable(d) {
     tr.style.animationDelay = (i * 20) + 'ms';
     tr.classList.add('fade-in');
 
-    var provider = d.P[m.provider];
+    var provider = d.P[m.provider] || { name: 'Unknown', color: '#666', logo: '?' };
     var aa = m.scores.artificialAnalysis || {};
     var ls = m.scores.llmStats || {};
     var arena = m.scores.chatbotArena || {};
@@ -298,7 +298,7 @@ function openModal(model, d) {
     '<div class="modal-detail-item"><span class="modal-detail-label">License</span><span class="modal-detail-value">' + (model.license === 'open' ? 'Open Source' : 'Proprietary') + '</span></div>' +
     '<div class="modal-detail-item"><span class="modal-detail-label">Pricing (I/O per 1M)</span><span class="modal-detail-value">' + (model.pricing ? '$' + model.pricing.input + ' / $' + model.pricing.output : '—') + '</span></div>' +
     '<div class="modal-detail-item"><span class="modal-detail-label">Release Date</span><span class="modal-detail-value">' + (model.releaseDate || '—') + '</span></div>' +
-    '<div class="modal-detail-item"><span class="modal-detail-label">Categories</span><span class="modal-detail-value">' + model.categories.map(function(c) { return d.C[c]; }).join(', ') + '</span></div>';
+    '<div class="modal-detail-item"><span class="modal-detail-label">Categories</span><span class="modal-detail-value">' + model.categories.map(function(c) { return d.C[c] || c; }).join(', ') + '</span></div>';
 
   var hlEl = document.getElementById('modalHighlights');
   if (model.highlights && model.highlights.length) {
