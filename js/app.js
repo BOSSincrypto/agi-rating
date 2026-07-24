@@ -5,6 +5,8 @@ var currentFilters = { provider: 'all', category: 'all', license: 'all', search:
 var currentTab = 'table';
 var deps = null;
 var chartJsLoaded = false;
+var compareModels = [];
+var COMPARE_MAX = 4;
 
 function getDeps() {
   if (deps) return deps;
@@ -38,6 +40,7 @@ function init() {
   initTable(d);
   initLeaders(d);
   initSources(d);
+  initCompare(d);
   initTheme(d);
   initKeyboard();
 }
@@ -104,6 +107,8 @@ function initTabs(d) {
         } else {
           setTimeout(function() { d.initCharts(); }, 100);
         }
+      } else if (target === 'compare') {
+        renderCompareTab();
       } else {
         d.destroyCharts();
       }
@@ -168,6 +173,7 @@ function renderTable(d) {
     }
 
     tr.innerHTML =
+      '<td class="compare-cell"><input type="checkbox" class="compare-check" data-model-id="' + m.id + '"' + (compareModels.indexOf(m.id) !== -1 ? ' checked' : '') + '></td>' +
       '<td><div class="model-cell">' +
         '<div class="provider-badge" style="background:' + provider.color + '">' + provider.logo + '</div>' +
         '<div class="model-info">' +
@@ -188,6 +194,13 @@ function renderTable(d) {
     (function(model) {
       tr.addEventListener('click', function() { openModal(model, d); });
     })(m);
+
+    var cb = tr.querySelector('.compare-check');
+    cb.addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleCompareModel(m.id);
+    });
+
     tbody.appendChild(tr);
   }
 }
@@ -233,6 +246,236 @@ function initSources(d) {
       '<div class="source-info"><h4>' + source.name + '</h4><p>View source →</p></div>';
     grid.appendChild(card);
   }
+}
+
+// Compare feature
+var compareChart = null;
+
+function toggleCompareModel(modelId) {
+  var idx = compareModels.indexOf(modelId);
+  if (idx !== -1) {
+    compareModels.splice(idx, 1);
+  } else {
+    if (compareModels.length >= COMPARE_MAX) {
+      compareModels.shift();
+    }
+    compareModels.push(modelId);
+  }
+  updateCompareBar();
+  renderCompareTab();
+  if (currentTab === 'table') renderTable(getDeps());
+}
+
+function clearCompareModels() {
+  compareModels = [];
+  updateCompareBar();
+  renderCompareTab();
+  if (currentTab === 'table') renderTable(getDeps());
+}
+
+function updateCompareBar() {
+  var bar = document.getElementById('compareBar');
+  if (compareModels.length === 0) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = '';
+
+  document.getElementById('compareCount').textContent = compareModels.length;
+  document.getElementById('compareMax').textContent = COMPARE_MAX;
+
+  var chipsEl = document.getElementById('compareBarChips');
+  chipsEl.innerHTML = '';
+  var d = getDeps();
+  for (var i = 0; i < compareModels.length; i++) {
+    var model = d.M.find(function(m) { return m.id === compareModels[i]; });
+    if (!model) continue;
+    var provider = d.P[model.provider];
+    var chip = document.createElement('span');
+    chip.className = 'compare-chip';
+    chip.innerHTML = '<span class="chip-badge" style="background:' + provider.color + '">' + provider.logo + '</span>' + model.name + '<button class="chip-remove" data-model-id="' + model.id + '">&times;</button>';
+    chipsEl.appendChild(chip);
+  }
+
+  var removeBtns = chipsEl.querySelectorAll('.chip-remove');
+  for (var j = 0; j < removeBtns.length; j++) {
+    removeBtns[j].addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleCompareModel(this.dataset.modelId);
+    });
+  }
+}
+
+function renderCompareTab() {
+  var d = getDeps();
+  var emptyEl = document.getElementById('compareEmpty');
+  var contentEl = document.getElementById('compareContent');
+
+  if (compareModels.length < 2) {
+    emptyEl.style.display = '';
+    contentEl.style.display = 'none';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  contentEl.style.display = '';
+
+  var models = compareModels.map(function(id) {
+    return d.M.find(function(m) { return m.id === id; });
+  }).filter(Boolean);
+
+  var chipsEl = document.getElementById('compareChips');
+  chipsEl.innerHTML = '';
+  for (var i = 0; i < models.length; i++) {
+    var m = models[i];
+    var provider = d.P[m.provider];
+    var chip = document.createElement('span');
+    chip.className = 'compare-chip';
+    chip.innerHTML = '<span class="chip-badge" style="background:' + provider.color + '">' + provider.logo + '</span>' + m.name + '<button class="chip-remove" data-model-id="' + m.id + '">&times;</button>';
+    chipsEl.appendChild(chip);
+  }
+  var removeBtns = chipsEl.querySelectorAll('.chip-remove');
+  for (var j = 0; j < removeBtns.length; j++) {
+    removeBtns[j].addEventListener('click', function() {
+      toggleCompareModel(this.dataset.modelId);
+    });
+  }
+
+  var gridEl = document.getElementById('compareGrid');
+  gridEl.innerHTML = '';
+
+  var metrics = [
+    { label: 'Intelligence', get: function(m) { return m.scores.artificialAnalysis && m.scores.artificialAnalysis.intelligence; }, max: 65 },
+    { label: 'Composite', get: function(m) { return m.scores.llmStats && m.scores.llmStats.composite; }, max: 65 },
+    { label: 'Arena Elo', get: function(m) { return m.scores.chatbotArena && m.scores.chatbotArena.elo; }, max: 1600 },
+    { label: 'Reasoning', get: function(m) { return (m.scores.llmStats && m.scores.llmStats.reasoning) || (m.scores.vellum && m.scores.vellum.gpqa); }, max: 100 },
+    { label: 'Coding', get: function(m) { return (m.scores.llmStats && m.scores.llmStats.coding) || (m.scores.vellum && m.scores.vellum.swebench); }, max: 100 },
+    { label: 'Agent', get: function(m) { return m.scores.llmStats && m.scores.llmStats.agent; }, max: 50 },
+    { label: 'HLE', get: function(m) { return m.scores.vellum && m.scores.vellum.hle; }, max: 70 },
+    { label: 'GPQA', get: function(m) { return m.scores.vellum && m.scores.vellum.gpqa; }, max: 100 },
+    { label: 'SWE-Bench', get: function(m) { return m.scores.vellum && m.scores.vellum.swebench; }, max: 100 },
+    { label: 'Terminal-Bench', get: function(m) { return m.scores.vellum && m.scores.vellum.terminal; }, max: 100 },
+    { label: 'BrowseComp', get: function(m) { return m.scores.vellum && m.scores.vellum.browsecomp; }, max: 100 },
+    { label: 'OSWorld', get: function(m) { return m.scores.vellum && m.scores.vellum.osworld; }, max: 100 },
+    { label: 'AutoBench', get: function(m) { return m.scores.vellum && m.scores.vellum.autobench; }, max: 20 },
+    { label: 'Speed', get: function(m) { return (m.scores.artificialAnalysis && m.scores.artificialAnalysis.speed) || (m.scores.vellum && m.scores.vellum.speed); }, max: 2700, suffix: ' t/s' },
+    { label: 'Avg Price', get: function(m) { return m.pricing ? (m.pricing.input + m.pricing.output) / 2 : null; }, max: 60, suffix: '/1M', invert: true },
+    { label: 'Context Window', get: function(m) { return m.contextWindow; }, max: 10000000 },
+    { label: 'Max Output', get: function(m) { return m.maxOutput; }, max: 512000 },
+    { label: 'License', get: function(m) { return m.license === 'open' ? 'Open' : 'Proprietary'; }, isText: true },
+  ];
+
+  for (var mi = 0; mi < metrics.length; mi++) {
+    var metric = metrics[mi];
+    if (metric.isText) continue;
+    var vals = models.map(metric.get).filter(function(v) { return v !== null && v !== undefined; });
+    if (vals.length > 0) {
+      metric.bestVal = metric.invert ? Math.min.apply(null, vals) : Math.max.apply(null, vals);
+      metric.worstVal = metric.invert ? Math.max.apply(null, vals) : Math.min.apply(null, vals);
+    }
+  }
+
+  var html = '<table class="compare-table"><thead><tr><th class="compare-metric-col">Metric</th>';
+  for (var ci = 0; ci < models.length; ci++) {
+    var cm = models[ci];
+    var cp = d.P[cm.provider];
+    html += '<th><div class="compare-model-header"><span class="provider-badge" style="background:' + cp.color + '">' + cp.logo + '</span>' + cm.name + '</div></th>';
+  }
+  html += '</tr></thead><tbody>';
+
+  for (var ri = 0; ri < metrics.length; ri++) {
+    var rmetric = metrics[ri];
+    html += '<tr><td class="compare-metric-label">' + rmetric.label + '</td>';
+    for (var cj = 0; cj < models.length; cj++) {
+      var cellVal = rmetric.get(models[cj]);
+      var cellClass = 'compare-cell';
+      if (!rmetric.isText && cellVal !== null && cellVal !== undefined) {
+        if (cellVal === rmetric.bestVal) cellClass += ' compare-best';
+        else if (cellVal === rmetric.worstVal && models.length > 2) cellClass += ' compare-worst';
+      }
+      if (rmetric.isText) {
+        html += '<td class="' + cellClass + '">' + (cellVal || '—') + '</td>';
+      } else {
+        var formatted = cellVal != null ? (typeof cellVal === 'number' ? cellVal.toFixed(1) : cellVal) : '—';
+        if (rmetric.suffix) formatted += rmetric.suffix;
+        html += '<td class="' + cellClass + '">' + formatted + '</td>';
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  gridEl.innerHTML = html;
+
+  renderCompareRadar(models, d);
+}
+
+function renderCompareRadar(models, d) {
+  if (compareChart) {
+    compareChart.destroy();
+    compareChart = null;
+  }
+
+  if (!window.Chart) return;
+
+  var labels = ['Intelligence', 'Reasoning', 'Coding', 'Agent', 'Speed', 'HLE', 'GPQA'];
+  var colors = ['#6366f1', '#ef4444', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899', '#14b8a6', '#06b6d4'];
+
+  var datasets = models.map(function(m, idx) {
+    var data = [
+      (m.scores.artificialAnalysis && m.scores.artificialAnalysis.intelligence) || 0,
+      (m.scores.llmStats && m.scores.llmStats.reasoning) || (m.scores.vellum && m.scores.vellum.gpqa) || 0,
+      (m.scores.llmStats && m.scores.llmStats.coding) || (m.scores.vellum && m.scores.vellum.swebench) || 0,
+      (m.scores.llmStats && m.scores.llmStats.agent) || 0,
+      Math.min(((m.scores.artificialAnalysis && m.scores.artificialAnalysis.speed) || 0) / 20, 65),
+      (m.scores.vellum && m.scores.vellum.hle) || 0,
+      (m.scores.vellum && m.scores.vellum.gpqa) || 0,
+    ];
+    var color = colors[idx % colors.length];
+    return {
+      label: m.name,
+      data: data,
+      borderColor: color,
+      backgroundColor: color + '22',
+      borderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+    };
+  });
+
+  compareChart = new Chart(document.getElementById('chartCompare'), {
+    type: 'radar',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16 } },
+      },
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 100,
+          grid: { color: '#2d2d5a44' },
+          angleLines: { color: '#2d2d5a44' },
+          pointLabels: { font: { size: 11 } },
+        }
+      }
+    }
+  });
+}
+
+function initCompare(d) {
+  document.getElementById('compareGoBtn').addEventListener('click', function() {
+    var tabs = document.querySelectorAll('.tab');
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].dataset.tab === 'compare') {
+        tabs[i].click();
+        break;
+      }
+    }
+  });
+  document.getElementById('compareClearBtn').addEventListener('click', function() {
+    clearCompareModels();
+  });
 }
 
 function openModal(model, d) {
@@ -281,6 +524,27 @@ function openModal(model, d) {
   } else {
     hlEl.style.display = 'none';
   }
+
+  var compareBtn = document.createElement('button');
+  compareBtn.className = 'modal-compare-btn';
+  if (compareModels.indexOf(model.id) !== -1) {
+    compareBtn.textContent = 'Remove from Comparison';
+    compareBtn.classList.add('active');
+  } else {
+    compareBtn.textContent = 'Add to Comparison';
+  }
+  compareBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleCompareModel(model.id);
+    if (compareModels.indexOf(model.id) !== -1) {
+      compareBtn.textContent = 'Remove from Comparison';
+      compareBtn.classList.add('active');
+    } else {
+      compareBtn.textContent = 'Add to Comparison';
+      compareBtn.classList.remove('active');
+    }
+  });
+  hlEl.appendChild(compareBtn);
 
   overlay.classList.add('active');
   document.body.style.overflow = 'hidden';
