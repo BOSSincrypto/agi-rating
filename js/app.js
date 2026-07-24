@@ -213,6 +213,13 @@ function renderTable(d) {
         openModal(model, d);
       });
     })(m);
+
+    var cb = tr.querySelector('.compare-check');
+    cb.addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleCompareModel(m.id);
+    });
+
     tbody.appendChild(tr);
   }
 }
@@ -260,6 +267,9 @@ function initSources(d) {
   }
 }
 
+// Compare feature
+var compareChart = null;
+
 function openModal(model, d) {
   var overlay = document.getElementById('modalOverlay');
   var provider = d.P[model.provider];
@@ -306,6 +316,27 @@ function openModal(model, d) {
   } else {
     hlEl.style.display = 'none';
   }
+
+  var compareBtn = document.createElement('button');
+  compareBtn.className = 'modal-compare-btn';
+  if (compareModels.indexOf(model.id) !== -1) {
+    compareBtn.textContent = 'Remove from Comparison';
+    compareBtn.classList.add('active');
+  } else {
+    compareBtn.textContent = 'Add to Comparison';
+  }
+  compareBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleCompareModel(model.id);
+    if (compareModels.indexOf(model.id) !== -1) {
+      compareBtn.textContent = 'Remove from Comparison';
+      compareBtn.classList.add('active');
+    } else {
+      compareBtn.textContent = 'Add to Comparison';
+      compareBtn.classList.remove('active');
+    }
+  });
+  hlEl.appendChild(compareBtn);
 
   overlay.classList.add('active');
   document.body.style.overflow = 'hidden';

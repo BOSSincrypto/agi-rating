@@ -131,6 +131,14 @@ function filterModels(models, filters) {
   });
 }
 
+// Find model by ID
+function findById(models, id) {
+  for (var i = 0; i < models.length; i++) {
+    if (models[i].id === id) return models[i];
+  }
+  return null;
+}
+
 // Export
 window.AGIRatingUtils = {
   formatPrice: formatPrice,
@@ -141,4 +149,5 @@ window.AGIRatingUtils = {
   debounce: debounce,
   sortModels: sortModels,
   filterModels: filterModels,
+  findById: findById,
 };
