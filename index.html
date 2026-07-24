@@ -86,6 +86,7 @@
       <button class="tab" data-tab="leaders">Category Leaders</button>
       <button class="tab" data-tab="charts">Analytics</button>
       <button class="tab" data-tab="sources">Sources</button>
+      <button class="tab" data-tab="compare">Compare</button>
     </div>
 
     <!-- Rankings Tab -->
@@ -99,6 +100,7 @@
           <table>
             <thead>
               <tr>
+                <th class="compare-checkbox-col"></th>
                 <th data-sort="name">Model</th>
                 <th data-sort="intelligence">Intelligence</th>
                 <th data-sort="composite">Composite</th>
@@ -163,7 +165,33 @@
       </p>
       <div class="sources-grid" id="sourcesGrid"></div>
     </div>
+
+    <!-- Compare Tab -->
+    <div class="tab-content" id="tab-compare" style="display:none;">
+      <div class="compare-container">
+        <div class="table-header">
+          <span class="table-title">Model Comparison</span>
+          <span class="table-count" id="compareInfo">Select models from Rankings tab</span>
+        </div>
+        <div id="compareContent" class="compare-content">
+          <div class="compare-empty">
+            <p>Go to Rankings tab and check models to compare (max 4)</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
+
+  <!-- Compare Bar (bottom) -->
+  <div id="compareBar" class="compare-bar" style="display:none">
+    <div class="compare-bar-inner">
+      <div id="compareBarModels" class="compare-bar-models"></div>
+      <div class="compare-bar-actions">
+        <button id="compareBtn" class="btn btn-accent">Compare (<span id="compareCount">0</span>)</button>
+        <button id="compareClear" class="btn btn-ghost">Clear</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Footer -->
   <footer class="footer">
