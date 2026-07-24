@@ -618,11 +618,9 @@ const MODELS = [
     maxOutput: 32000,
     license: 'proprietary',
     pricing: { input: 0.04, output: 0.14 },
-    scores: {
-      vellum: { latency: 0.3 },
-    },
+    scores: {},
     categories: ['price', 'speed'],
-    highlights: ['Cheapest Model', 'Lowest Latency (0.3s)'],
+    highlights: ['Cheapest Model'],
   },
 
   // === MINIMAX ===
@@ -775,16 +773,6 @@ function getTopScore(model) {
   return top;
 }
 
-// Helper: Search models
-function searchModels(query) {
-  const q = query.toLowerCase();
-  return MODELS.filter(m =>
-    m.name.toLowerCase().includes(q) ||
-    PROVIDERS[m.provider].name.toLowerCase().includes(q) ||
-    m.categories.some(c => c.includes(q))
-  );
-}
-
 // Helper: Get category leaders
 function getCategoryLeaders() {
   const leaders = {};
@@ -806,6 +794,5 @@ window.AGIRating = {
   getProviders,
   getModelsByCategory,
   getTopScore,
-  searchModels,
   getCategoryLeaders,
 };

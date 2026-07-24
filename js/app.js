@@ -4,6 +4,7 @@ var currentSort = { by: 'intelligence', dir: 'desc' };
 var currentFilters = { provider: 'all', category: 'all', license: 'all', search: '' };
 var currentTab = 'table';
 var deps = null;
+var chartJsLoaded = false;
 
 function getDeps() {
   if (deps) return deps;
@@ -92,7 +93,17 @@ function initTabs(d) {
       currentTab = target;
 
       if (target === 'charts') {
-        setTimeout(function() { d.initCharts(); }, 100);
+        if (!chartJsLoaded) {
+          var script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+          script.onload = function() {
+            chartJsLoaded = true;
+            setTimeout(function() { d.initCharts(); }, 100);
+          };
+          document.head.appendChild(script);
+        } else {
+          setTimeout(function() { d.initCharts(); }, 100);
+        }
       } else {
         d.destroyCharts();
       }
@@ -168,7 +179,7 @@ function renderTable(d) {
       '<td><span class="score ' + d.getScoreClass(arena.elo, 1600) + '">' + (arena.elo ? arena.elo : '—') + '</span></td>' +
       '<td><span class="score ' + d.getScoreClass(ls.reasoning || vellum.gpqa) + '">' + d.scoreVal(ls.reasoning || vellum.gpqa) + '</span></td>' +
       '<td><span class="score ' + d.getScoreClass(ls.coding || vellum.swebench) + '">' + d.scoreVal(ls.coding || vellum.swebench) + '</span></td>' +
-      '<td>' + (aa.speed ? d.formatSpeed(aa.speed) : '—') + '</td>' +
+      '<td>' + (aa.speed ? d.formatSpeed(aa.speed) : (vellum.speed ? d.formatSpeed(vellum.speed) : '—')) + '</td>' +
       '<td>' + (avgPrice !== null ? d.formatPrice(avgPrice) : '—') + '</td>' +
       '<td>' + d.formatContext(m.contextWindow) + '</td>' +
       '<td><div class="tags">' + tags + '</div></td>';

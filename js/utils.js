@@ -1,10 +1,5 @@
 // AGI Rating - Utility Functions
 
-// Format number with commas
-function formatNumber(num) {
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
 // Format price
 function formatPrice(price) {
   if (price === null || price === undefined) return '—';
@@ -28,9 +23,10 @@ function formatSpeed(speed) {
 }
 
 // Format score with color class
-function getScoreClass(score, max = 100) {
+function getScoreClass(score, max) {
+  max = max || 100;
   if (score === null || score === undefined) return 'score-na';
-  const pct = (score / max) * 100;
+  var pct = (score / max) * 100;
   if (pct >= 90) return 'score-excellent';
   if (pct >= 75) return 'score-good';
   if (pct >= 50) return 'score-average';
@@ -44,35 +40,22 @@ function scoreVal(val) {
 }
 
 // Debounce function
-function debounce(fn, ms = 300) {
-  let timer;
-  return (...args) => {
+function debounce(fn, ms) {
+  ms = ms || 300;
+  var timer;
+  return function() {
+    var ctx = this;
+    var args = arguments;
     clearTimeout(timer);
-    timer = setTimeout(() => fn.apply(this, args), ms);
+    timer = setTimeout(function() { fn.apply(ctx, args); }, ms);
   };
 }
 
-// Create element with attributes
-function el(tag, attrs = {}, children = []) {
-  const elem = document.createElement(tag);
-  for (const [key, val] of Object.entries(attrs)) {
-    if (key === 'className') elem.className = val;
-    else if (key === 'innerHTML') elem.innerHTML = val;
-    else if (key === 'textContent') elem.textContent = val;
-    else if (key.startsWith('on')) elem.addEventListener(key.slice(2).toLowerCase(), val);
-    else elem.setAttribute(key, val);
-  }
-  for (const child of children) {
-    if (typeof child === 'string') elem.appendChild(document.createTextNode(child));
-    else if (child) elem.appendChild(child);
-  }
-  return elem;
-}
-
 // Sort models by multiple criteria
-function sortModels(models, sortBy, sortDir = 'desc') {
-  return [...models].sort((a, b) => {
-    let aVal, bVal;
+function sortModels(models, sortBy, sortDir) {
+  sortDir = sortDir || 'desc';
+  return models.slice().sort(function(a, b) {
+    var aVal, bVal;
 
     switch (sortBy) {
       case 'name':
@@ -86,33 +69,33 @@ function sortModels(models, sortBy, sortDir = 'desc') {
         return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
 
       case 'intelligence':
-        aVal = a.scores.artificialAnalysis?.intelligence || 0;
-        bVal = b.scores.artificialAnalysis?.intelligence || 0;
+        aVal = a.scores.artificialAnalysis && a.scores.artificialAnalysis.intelligence || 0;
+        bVal = b.scores.artificialAnalysis && b.scores.artificialAnalysis.intelligence || 0;
         break;
 
       case 'composite':
-        aVal = a.scores.llmStats?.composite || 0;
-        bVal = b.scores.llmStats?.composite || 0;
+        aVal = a.scores.llmStats && a.scores.llmStats.composite || 0;
+        bVal = b.scores.llmStats && b.scores.llmStats.composite || 0;
         break;
 
       case 'elo':
-        aVal = a.scores.chatbotArena?.elo || 0;
-        bVal = b.scores.chatbotArena?.elo || 0;
+        aVal = a.scores.chatbotArena && a.scores.chatbotArena.elo || 0;
+        bVal = b.scores.chatbotArena && b.scores.chatbotArena.elo || 0;
         break;
 
       case 'reasoning':
-        aVal = a.scores.llmStats?.reasoning || a.scores.vellum?.gpqa || 0;
-        bVal = b.scores.llmStats?.reasoning || b.scores.vellum?.gpqa || 0;
+        aVal = (a.scores.llmStats && a.scores.llmStats.reasoning) || (a.scores.vellum && a.scores.vellum.gpqa) || 0;
+        bVal = (b.scores.llmStats && b.scores.llmStats.reasoning) || (b.scores.vellum && b.scores.vellum.gpqa) || 0;
         break;
 
       case 'coding':
-        aVal = a.scores.llmStats?.coding || a.scores.vellum?.swebench || 0;
-        bVal = b.scores.llmStats?.coding || b.scores.vellum?.swebench || 0;
+        aVal = (a.scores.llmStats && a.scores.llmStats.coding) || (a.scores.vellum && a.scores.vellum.swebench) || 0;
+        bVal = (b.scores.llmStats && b.scores.llmStats.coding) || (b.scores.vellum && b.scores.vellum.swebench) || 0;
         break;
 
       case 'speed':
-        aVal = a.scores.artificialAnalysis?.speed || 0;
-        bVal = b.scores.artificialAnalysis?.speed || 0;
+        aVal = (a.scores.artificialAnalysis && a.scores.artificialAnalysis.speed) || (a.scores.vellum && a.scores.vellum.speed) || 0;
+        bVal = (b.scores.artificialAnalysis && b.scores.artificialAnalysis.speed) || (b.scores.vellum && b.scores.vellum.speed) || 0;
         break;
 
       case 'price':
@@ -123,21 +106,6 @@ function sortModels(models, sortBy, sortDir = 'desc') {
       case 'context':
         aVal = a.contextWindow || 0;
         bVal = b.contextWindow || 0;
-        break;
-
-      case 'hle':
-        aVal = a.scores.vellum?.hle || 0;
-        bVal = b.scores.vellum?.hle || 0;
-        break;
-
-      case 'gpqa':
-        aVal = a.scores.vellum?.gpqa || 0;
-        bVal = b.scores.vellum?.gpqa || 0;
-        break;
-
-      case 'swebench':
-        aVal = a.scores.vellum?.swebench || 0;
-        bVal = b.scores.vellum?.swebench || 0;
         break;
 
       default:
@@ -151,47 +119,26 @@ function sortModels(models, sortBy, sortDir = 'desc') {
 
 // Filter models
 function filterModels(models, filters) {
-  return models.filter(m => {
+  return models.filter(function(m) {
     if (filters.provider && filters.provider !== 'all' && m.provider !== filters.provider) return false;
     if (filters.license && filters.license !== 'all' && m.license !== filters.license) return false;
-    if (filters.category && filters.category !== 'all' && !m.categories.includes(filters.category)) return false;
+    if (filters.category && filters.category !== 'all' && m.categories.indexOf(filters.category) === -1) return false;
     if (filters.search) {
-      const q = filters.search.toLowerCase();
-      if (!m.name.toLowerCase().includes(q) && !PROVIDERS[m.provider].name.toLowerCase().includes(q)) return false;
-    }
-    if (filters.maxPrice) {
-      const avgPrice = m.pricing ? (m.pricing.input + m.pricing.output) / 2 : 0;
-      if (avgPrice > filters.maxPrice) return false;
+      var q = filters.search.toLowerCase();
+      if (m.name.toLowerCase().indexOf(q) === -1 && PROVIDERS[m.provider].name.toLowerCase().indexOf(q) === -1) return false;
     }
     return true;
   });
 }
 
-// Generate radar chart data for a model
-function getRadarData(model) {
-  const labels = ['Intelligence', 'Reasoning', 'Coding', 'Agent', 'Speed', 'Value'];
-  const data = [
-    model.scores.artificialAnalysis?.intelligence || model.scores.llmStats?.composite || 0,
-    model.scores.llmStats?.reasoning || model.scores.vellum?.gpqa || 0,
-    model.scores.llmStats?.coding || model.scores.vellum?.swebench || 0,
-    model.scores.llmStats?.agent || 0,
-    Math.min((model.scores.artificialAnalysis?.speed || 0) / 10, 100),
-    model.pricing ? Math.max(0, 100 - (model.pricing.input + model.pricing.output) * 2) : 50,
-  ];
-  return { labels, data };
-}
-
 // Export
 window.AGIRatingUtils = {
-  formatNumber,
-  formatPrice,
-  formatContext,
-  formatSpeed,
-  getScoreClass,
-  scoreVal,
-  debounce,
-  el,
-  sortModels,
-  filterModels,
-  getRadarData,
+  formatPrice: formatPrice,
+  formatContext: formatContext,
+  formatSpeed: formatSpeed,
+  getScoreClass: getScoreClass,
+  scoreVal: scoreVal,
+  debounce: debounce,
+  sortModels: sortModels,
+  filterModels: filterModels,
 };

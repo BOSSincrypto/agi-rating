@@ -7,7 +7,7 @@
 <p align="center">
   <strong>Unified LLM Model Ratings &amp; Benchmarks</strong>
   <br />
-  300+ models • 8 rating sources • One place to compare them all
+  40+ models • 8 rating sources • One place to compare them all
 </p>
 
 <p align="center">
@@ -36,7 +36,7 @@
 
 ### ✨ Features
 
-- **🔍 Unified Rankings** — Sortable table with 30+ top LLMs from all major providers
+- **🔍 Unified Rankings** — Sortable table with 40+ models from all major providers
 - **📊 Multi-Source Data** — Aggregated from **8 authoritative rating platforms**
 - **🏆 Category Leaders** — Top models by: Overall, Reasoning, Coding, Agentic, Speed, Price, Context, Open Source & more
 - **📈 Analytics** — Interactive charts: Top 10 Intelligence, Price vs Performance, Provider Distribution, Context vs Speed
