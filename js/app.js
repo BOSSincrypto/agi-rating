@@ -415,7 +415,7 @@ function renderCompare(d) {
     { label: 'BrowseComp', get: function(m) { return m.scores.vellum && m.scores.vellum.browsecomp; }, max: 100 },
     { label: 'Terminal', get: function(m) { return m.scores.vellum && m.scores.vellum.terminal; }, max: 100 },
     { label: 'Speed', get: function(m) { return (m.scores.artificialAnalysis && m.scores.artificialAnalysis.speed) || (m.scores.vellum && m.scores.vellum.speed); }, suffix: ' t/s', max: 1000 },
-    { label: 'Avg Price', get: function(m) { return m.pricing ? (m.pricing.input + m.pricing.output) / 2 : null; }, suffix: '/1M', invert: true },
+    { label: 'Avg Price', get: function(m) { return m.pricing ? (m.pricing.input + m.pricing.output) / 2 : null; }, format: function(v) { return '$' + v.toFixed(2); }, suffix: '/1M', invert: true },
     { label: 'Context', get: function(m) { return m.contextWindow; }, format: d.formatContext },
     { label: 'Max Output', get: function(m) { return m.maxOutput; }, format: d.formatContext },
     { label: 'License', get: function(m) { return m.license === 'open' ? 'Open Source' : 'Proprietary'; }, isText: true },
@@ -470,7 +470,7 @@ function renderCompare(d) {
   for (var ch = 0; ch < models.length; ch++) {
     var chModel = models[ch];
     var hl = (chModel.highlights || []).join(', ') || '—';
-    html += '<div class="compare-cell" style="font-size:0.8rem;color:var(--text-secondary)">' + hl + '</div>';
+    html += '<div class="compare-cell" style="font-size:0.8rem;color:var(--text-secondary);white-space:normal;text-align:left;line-height:1.4">' + hl + '</div>';
   }
 
   html += '</div>';

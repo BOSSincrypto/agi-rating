@@ -1174,7 +1174,9 @@ tr:hover td {
 }
 .compare-radar-wrap {
   max-width: 600px;
-  margin: 0 auto 2rem;
+  margin: 2rem auto;
+  position: relative;
+  z-index: 0;
 }
 .compare-grid {
   display: grid;
@@ -1182,6 +1184,8 @@ tr:hover td {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 .compare-header-cell {
   background: var(--bg-secondary);
@@ -1210,12 +1214,14 @@ tr:hover td {
   color: var(--text-secondary);
   font-size: 0.85rem;
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 .compare-cell {
   padding: 0.75rem 1rem;
   text-align: center;
   border-bottom: 1px solid var(--border);
   font-size: 0.9rem;
+  white-space: nowrap;
 }
 .compare-best {
   background: rgba(34, 197, 94, 0.12);
