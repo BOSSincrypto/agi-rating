@@ -293,7 +293,7 @@ function getTopScore(model) {
   var scores = [];
   if (model.scores.artificialAnalysis && model.scores.artificialAnalysis.intelligence) scores.push(model.scores.artificialAnalysis.intelligence);
   if (model.scores.llmStats && model.scores.llmStats.composite) scores.push(model.scores.llmStats.composite);
-  if (model.scores.chatbotArena && model.scores.chatbotArena.elo) scores.push(model.scores.chatbotArena.elo / 25);
+  if (model.scores.chatbotArena && model.scores.chatbotArena.elo) scores.push(model.scores.chatbotArena.elo / 30);
   if (scores.length === 0) return 0;
   return scores.reduce((a, b) => a + b, 0) / scores.length;
 }

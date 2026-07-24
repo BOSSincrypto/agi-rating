@@ -140,6 +140,22 @@ function findById(models, id) {
   return null;
 }
 
+// Escape HTML to prevent XSS
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Validate hex color
+function sanitizeColor(color) {
+  return /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#666666';
+}
+
 // Export
 window.AGIRatingUtils = {
   formatPrice: formatPrice,
@@ -151,4 +167,6 @@ window.AGIRatingUtils = {
   sortModels: sortModels,
   filterModels: filterModels,
   findById: findById,
+  escapeHtml: escapeHtml,
+  sanitizeColor: sanitizeColor,
 };

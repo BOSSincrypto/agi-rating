@@ -27,6 +27,8 @@ function getDeps() {
     debounce: window.AGIRatingUtils.debounce,
     sortModels: window.AGIRatingUtils.sortModels,
     filterModels: window.AGIRatingUtils.filterModels,
+    escapeHtml: window.AGIRatingUtils.escapeHtml,
+    sanitizeColor: window.AGIRatingUtils.sanitizeColor,
     initCharts: window.AGIRatingCharts.initCharts,
     destroyCharts: window.AGIRatingCharts.destroyCharts,
   };
@@ -178,16 +180,16 @@ function renderTable(d) {
     var tags = '';
     if (m.license === 'open') tags += '<span class="tag">Open</span>';
     for (var ci = 0; ci < Math.min(m.categories.length, 2); ci++) {
-      tags += '<span class="tag">' + (d.C[m.categories[ci]] || m.categories[ci]) + '</span>';
+      tags += '<span class="tag">' + d.escapeHtml(d.C[m.categories[ci]] || m.categories[ci]) + '</span>';
     }
 
     tr.innerHTML =
-      '<td class="compare-checkbox-col"><input type="checkbox" class="table-checkbox" data-model-id="' + m.id + '"' + (compareModels.indexOf(m.id) !== -1 ? ' checked' : '') + '></td>' +
+      '<td class="compare-checkbox-col"><input type="checkbox" class="table-checkbox" data-model-id="' + d.escapeHtml(m.id) + '"' + (compareModels.indexOf(m.id) !== -1 ? ' checked' : '') + '></td>' +
       '<td><div class="model-cell">' +
-        '<div class="provider-badge" style="background:' + provider.color + '">' + provider.logo + '</div>' +
+        '<div class="provider-badge" style="background:' + d.sanitizeColor(provider.color) + '">' + d.escapeHtml(provider.logo) + '</div>' +
         '<div class="model-info">' +
-          '<span class="model-name">' + m.name + '</span>' +
-          '<span class="model-provider">' + provider.name + '</span>' +
+          '<span class="model-name">' + d.escapeHtml(m.name) + '</span>' +
+          '<span class="model-provider">' + d.escapeHtml(provider.name) + '</span>' +
         '</div></div></td>' +
       '<td><span class="score ' + d.getScoreClass(aa.intelligence, 65) + '">' + d.scoreVal(aa.intelligence) + '</span></td>' +
       '<td><span class="score ' + d.getScoreClass(ls.composite, 65) + '">' + d.scoreVal(ls.composite) + '</span></td>' +
@@ -234,12 +236,12 @@ function initLeaders(d) {
       var score = d.getTopScore(m);
       list += '<li class="leader-item">' +
         '<span class="leader-rank rank-' + (j + 1) + '">' + (j + 1) + '</span>' +
-        '<span class="leader-model">' + m.name + '</span>' +
+        '<span class="leader-model">' + d.escapeHtml(m.name) + '</span>' +
         '<span class="leader-score">' + score.toFixed(1) + '</span>' +
       '</li>';
     }
 
-    card.innerHTML = '<h3>' + info.label + '</h3><ul class="leader-list">' + list + '</ul>';
+    card.innerHTML = '<h3>' + d.escapeHtml(info.label) + '</h3><ul class="leader-list">' + list + '</ul>';
     grid.appendChild(card);
   }
 }
@@ -255,8 +257,8 @@ function initSources(d) {
     card.target = '_blank';
     card.rel = 'noopener';
     card.innerHTML =
-      '<span class="source-icon">' + source.icon + '</span>' +
-      '<div class="source-info"><h4>' + source.name + '</h4><p>View source →</p></div>';
+      '<span class="source-icon">' + d.escapeHtml(source.icon) + '</span>' +
+      '<div class="source-info"><h4>' + d.escapeHtml(source.name) + '</h4><p>View source →</p></div>';
     grid.appendChild(card);
   }
 }
@@ -297,12 +299,13 @@ function openModal(model, d) {
     '<div class="modal-detail-item"><span class="modal-detail-label">Max Output</span><span class="modal-detail-value">' + d.formatContext(model.maxOutput) + '</span></div>' +
     '<div class="modal-detail-item"><span class="modal-detail-label">License</span><span class="modal-detail-value">' + (model.license === 'open' ? 'Open Source' : 'Proprietary') + '</span></div>' +
     '<div class="modal-detail-item"><span class="modal-detail-label">Pricing (I/O per 1M)</span><span class="modal-detail-value">' + (model.pricing ? '$' + model.pricing.input + ' / $' + model.pricing.output : '—') + '</span></div>' +
-    '<div class="modal-detail-item"><span class="modal-detail-label">Release Date</span><span class="modal-detail-value">' + (model.releaseDate || '—') + '</span></div>' +
-    '<div class="modal-detail-item"><span class="modal-detail-label">Categories</span><span class="modal-detail-value">' + model.categories.map(function(c) { return d.C[c] || c; }).join(', ') + '</span></div>';
+    '<div class="modal-detail-item"><span class="modal-detail-label">Release Date</span><span class="modal-detail-value">' + d.escapeHtml(model.releaseDate || '—') + '</span></div>' +
+    '<div class="modal-detail-item"><span class="modal-detail-label">Categories</span><span class="modal-detail-value">' + model.categories.map(function(c) { return d.escapeHtml(d.C[c] || c); }).join(', ') + '</span></div>';
 
   var hlEl = document.getElementById('modalHighlights');
+  hlEl.querySelectorAll('.modal-compare-btn').forEach(function(b) { b.remove(); });
   if (model.highlights && model.highlights.length) {
-    hlEl.innerHTML = '<h4>Highlights</h4><ul>' + model.highlights.map(function(h) { return '<li>' + h + '</li>'; }).join('') + '</ul>';
+    hlEl.innerHTML = '<h4>Highlights</h4><ul>' + model.highlights.map(function(h) { return '<li>' + d.escapeHtml(h) + '</li>'; }).join('') + '</ul>';
     hlEl.style.display = '';
   } else {
     hlEl.style.display = 'none';
@@ -371,9 +374,9 @@ function renderCompareBar(d) {
     var provider = d.P[model.provider];
     var chip = document.createElement('span');
     chip.className = 'compare-bar-chip';
-    chip.innerHTML = '<span class="provider-badge" style="background:' + provider.color + ';width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;color:white;margin-right:0.3rem">' + provider.logo + '</span>' +
-      model.name +
-      '<button class="chip-remove" data-model-id="' + model.id + '">&times;</button>';
+    chip.innerHTML = '<span class="provider-badge" style="background:' + d.sanitizeColor(provider.color) + ';width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;color:white;margin-right:0.3rem">' + d.escapeHtml(provider.logo) + '</span>' +
+      d.escapeHtml(model.name) +
+      '<button class="chip-remove" data-model-id="' + d.escapeHtml(model.id) + '">&times;</button>';
     chipsEl.appendChild(chip);
   }
 
@@ -440,7 +443,7 @@ function renderCompare(d) {
   for (var ci = 0; ci < models.length; ci++) {
     var cm = models[ci];
     var cp = d.P[cm.provider];
-    html += '<div class="compare-header-cell"><span class="provider-badge" style="background:' + cp.color + '">' + cp.logo + '</span> ' + cm.name + '</div>';
+    html += '<div class="compare-header-cell"><span class="provider-badge" style="background:' + d.sanitizeColor(cp.color) + '">' + d.escapeHtml(cp.logo) + '</span> ' + d.escapeHtml(cm.name) + '</div>';
   }
 
   // Metric rows
@@ -469,7 +472,7 @@ function renderCompare(d) {
   html += '<div class="compare-metric-label" style="font-weight:700">Highlights</div>';
   for (var ch = 0; ch < models.length; ch++) {
     var chModel = models[ch];
-    var hl = (chModel.highlights || []).join(', ') || '—';
+    var hl = (chModel.highlights || []).map(function(h) { return d.escapeHtml(h); }).join(', ') || '—';
     html += '<div class="compare-cell" style="font-size:0.8rem;color:var(--text-secondary);white-space:normal;text-align:left;line-height:1.4">' + hl + '</div>';
   }
 
