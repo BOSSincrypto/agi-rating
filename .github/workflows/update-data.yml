@@ -1,0 +1,63 @@
+name: Weekly Data Update
+
+on:
+  schedule:
+    # Every Monday at 9:00 UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: cd scripts && npm install
+
+      - name: Install Puppeteer browser
+        run: cd scripts && npx puppeteer browsers install chrome
+
+      - name: Run data updater
+        run: cd scripts && node update-data.js
+        env:
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: 'true'
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet js/data.js; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'data: weekly model ratings update'
+          branch: auto/data-update
+          title: 'data: weekly model ratings update'
+          body: |
+            Automated weekly update of LLM model ratings and benchmarks.
+
+            Sources scraped:
+            - Artificial Analysis (intelligence, speed)
+            - Arena.ai (ELO ratings)
+            - Vellum (HLE, GPQA, SWE-Bench)
+
+            This PR was created automatically by the weekly data updater workflow.
+            Review the changes to `js/data.js` before merging.
+          labels: automated, data-update

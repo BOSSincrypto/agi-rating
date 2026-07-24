@@ -1,0 +1,12 @@
+{
+  "name": "agi-rating-update",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Weekly data updater for AGI Rating",
+  "scripts": {
+    "update": "node update-data.js"
+  },
+  "dependencies": {
+    "puppeteer": "^22.0.0"
+  }
+}
