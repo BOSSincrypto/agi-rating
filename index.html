@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AGI Rating - LLM Model Ratings & Benchmarks</title>
+  <meta name="description" content="Compare 300+ AI models across 8 rating sources. Unified rankings, benchmarks, pricing, and analytics for Claude, GPT, Gemini, and more.">
+  <meta name="keywords" content="LLM, AI, ratings, benchmarks, Claude, GPT, Gemini, DeepSeek, comparison, leaderboard">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <a href="/" class="logo">
+        <div class="logo-icon">AGI</div>
+        <span class="logo-text">AGI Rating</span>
+      </a>
+      <div class="header-actions">
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme (T)">🌙</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>LLM Ratings Unified</h1>
+    <p>300+ models. 8 rating sources. One place to compare them all.</p>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="statModels">0</div>
+        <div class="stat-label">Models Tracked</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statSources">8</div>
+        <div class="stat-label">Rating Sources</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statProviders">0</div>
+        <div class="stat-label">Providers</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statUpdated">Jul 24</div>
+        <div class="stat-label">Last Updated</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group" style="flex: 2;">
+        <label class="filter-label">Search</label>
+        <input type="text" class="filter-input" id="searchInput" placeholder="Search models, providers...">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Provider</label>
+        <select class="filter-select" id="filterProvider">
+          <option value="all">All Providers</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Category</label>
+        <select class="filter-select" id="filterCategory">
+          <option value="all">All Categories</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">License</label>
+        <select class="filter-select" id="filterLicense">
+          <option value="all">All</option>
+          <option value="proprietary">Proprietary</option>
+          <option value="open">Open Source</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="table">Rankings</button>
+      <button class="tab" data-tab="leaders">Category Leaders</button>
+      <button class="tab" data-tab="charts">Analytics</button>
+      <button class="tab" data-tab="sources">Sources</button>
+    </div>
+
+    <!-- Rankings Tab -->
+    <div class="tab-content active" id="tab-table">
+      <div class="table-container">
+        <div class="table-header">
+          <span class="table-title">All Models</span>
+          <span class="table-count" id="tableCount">0 models</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="name">Model</th>
+                <th data-sort="intelligence">Intelligence</th>
+                <th data-sort="composite">Composite</th>
+                <th data-sort="elo">Arena Elo</th>
+                <th data-sort="reasoning">Reasoning</th>
+                <th data-sort="coding">Coding</th>
+                <th data-sort="speed">Speed</th>
+                <th data-sort="price">Avg Price</th>
+                <th>Context</th>
+                <th>Tags</th>
+              </tr>
+            </thead>
+            <tbody id="modelTableBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaders Tab -->
+    <div class="tab-content" id="tab-leaders" style="display:none;">
+      <h2 class="section-title">Category Leaders</h2>
+      <div class="leaders-grid" id="leadersGrid"></div>
+    </div>
+
+    <!-- Charts Tab -->
+    <div class="tab-content" id="tab-charts" style="display:none;">
+      <h2 class="section-title">Analytics</h2>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Top 10 by Intelligence Score</h3>
+          <div class="chart-container">
+            <canvas id="chartIntelligence"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Price vs Performance</h3>
+          <div class="chart-container">
+            <canvas id="chartPricePerf"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Provider Distribution</h3>
+          <div class="chart-container">
+            <canvas id="chartProviders"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Context Window vs Speed</h3>
+          <div class="chart-container">
+            <canvas id="chartContextSpeed"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sources Tab -->
+    <div class="tab-content" id="tab-sources" style="display:none;">
+      <h2 class="section-title">Rating Sources</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+        Data aggregated from 8 authoritative LLM rating platforms. All scores current as of July 24, 2026.
+      </p>
+      <div class="sources-grid" id="sourcesGrid"></div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>AGI Rating - Aggregating the best LLM benchmarks into one place.</p>
+    <p style="margin-top: 0.5rem;">
+      Data updated daily. Not affiliated with any AI lab.
+      <a href="https://github.com/BOSSincrypto/agi-rating" target="_blank">GitHub</a>
+    </p>
+  </footer>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-model-name" id="modalName"></div>
+          <div class="modal-model-provider" id="modalProvider"></div>
+        </div>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-scores" id="modalScores"></div>
+      <div class="modal-details" id="modalDetails"></div>
+      <div class="modal-highlights" id="modalHighlights"></div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Hint -->
+  <div class="shortcuts-hint">
+    <kbd>/</kbd> Search &nbsp; <kbd>T</kbd> Theme
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
